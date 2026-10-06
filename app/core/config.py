@@ -13,7 +13,9 @@ class Settings(BaseSettings):
 
     # Security Settings
     # SECRET_KEY: str
-    #ACCESS_TOKEN_EXPIRE_MINUTES: int
+    JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int
+    JWT_ALGORITHM:str="HS256"
+    JWT_SECRET_KEY:str
 
     # tell pydantic to read from the .env file in the root directory
     model_config=SettingsConfigDict(env_file=".env",env_file_encoding="utf-8",extra="ignore")

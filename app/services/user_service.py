@@ -1,9 +1,15 @@
+from alembic.util import status
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.schemas.user import UserCreateRequest,UserCreateResponse
+from app.schemas.user import UserCreateRequest,UserCreateResponse,UserLoginRequest
 from app.repositories.user_repo import UserRepository
 from pwdlib import PasswordHash
 from pwdlib.hashers.argon2 import Argon2Hasher
 from fastapi import HTTPException
+from app.schemas.token import Token
+from app.models.common.User import User
+from app.core.security import verify_password
+
+
 
 #Intialise the password hasher using the Argon2 algorithm
 password_hasher=PasswordHash((Argon2Hasher(),))
@@ -40,7 +46,21 @@ class UserService:
         # return the created database model to router
         return created_user
 
+    @staticmethod
+    async def authenticate_user(db:AsyncSession,request:UserLoginRequest) :
+        #fetch the user
+        user = await UserRepository.get_user_by_email(db,request.email)
+        
+        if not user :
+            raise HTTPException(
+                status_code=404,
+                detail="user not registered"
+            )
 
+        if not verify_password(request.password,user.password):
+            raise HTTPException(status_code=401,detail="invalid credentials")
+
+        return user
 
 
         
