@@ -6,6 +6,8 @@ from app.core.security import create_access_token
 from app.database.session import get_db
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.services.user_service import UserService
+from app.api.deps import get_current_user_from_jwt
+from app.models.common.User import User
 
 router = APIRouter(prefix="/users",tags=["users"])
 
@@ -31,3 +33,11 @@ async def authenticate(login:UserLoginRequest,db:AsyncSession=Depends(get_db)):
 
     # 3. Return the token in the exact format Pydantic expects
     return {"access_token": access_token, "token_type": "bearer"}
+
+
+@router.get("/me", response_model=UserCreateResponse)
+async def get_my_profile(current_user: User = Depends(get_current_user_from_jwt)):
+    """
+    Fetch the currently authenticated user's details.
+    """
+    return current_user

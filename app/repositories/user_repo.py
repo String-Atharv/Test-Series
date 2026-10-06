@@ -5,6 +5,13 @@ from sqlalchemy import select
 class UserRepository:
 
     @staticmethod
+    async def get_user_by_id(db:AsyncSession,id:str)->User|None:
+        stmt=select(User).where(User.id==id)
+        result=await db.execute(stmt)
+        return result.scalar_one_or_none()
+
+
+    @staticmethod
     async def get_user_by_email(db:AsyncSession,email:str)->User | None:
         # Build the sql query using sqlalchemy syntax
         stmt=select(User).where(User.email==email)
@@ -30,7 +37,7 @@ class UserRepository:
         await db.flush()
 
         # refresh update the user object with latest changes from db like id 
-        
+
         await db.refresh(user)
         
         return user
