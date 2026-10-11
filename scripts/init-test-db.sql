@@ -1,0 +1,1 @@
+CREATE DATABASE test_series_test;
