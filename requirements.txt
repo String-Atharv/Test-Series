@@ -29,13 +29,14 @@ python-multipart==0.0.20
 # =========================
 # HTTP / OAuth
 # =========================
-httpx==0.28.1
+httpx==0.28.1 # HTTP client library to send http requests and receive response without spinning up actual server 
 
 # =========================
 # Testing
 # =========================
-pytest==8.4.1
-pytest-asyncio==1.1.0
+pytest==8.4.1  # unit testing
+pytest-asyncio==1.1.0 # unit testing of async functions
+
 
 # =========================
 # Storage / AWS S3
