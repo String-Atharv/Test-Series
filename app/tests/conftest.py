@@ -1,11 +1,12 @@
 # fixture is basically dependency injection 
-# fixture func is dependency and it is injected by passing the fixture func name in test-function , every time the depedency is injected new fresh dependency objected is ingested
+# fixture func is dependency and it is injected by passing the fixture func name in test-function , every time the depedency is injected new fresh dependency objected is ingested if scope is function
 
-# so every test isolated new dependency 
+# so every test has new isolated dependency 
 # but you can allow to use same dependency at different test by changing the scope of fixture
 
 
 #  we are settig up the dependency of DB for testing 
+from app import models
 from app.database.session import get_db
 import pytest
 import pytest_asyncio
@@ -13,13 +14,21 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.ext.asyncio import async_sessionmaker
 from sqlalchemy.ext.asyncio import create_async_engine
 from app.models.common.base import Base
-from app.main import app
+from app.main import app as fastapi_app
+import os
+from app.core.config import setting
 from httpx import AsyncClient, ASGITransport
-Test_DB_URL = "sqlite+aiosqlite:///:memory:"
+from sqlalchemy.pool import NullPool
 
-engine=create_async_engine(  
-    Test_DB_URL,
-    connect_args={"check_same_thread":False}
+TEST_DB_URL = os.getenv(
+    "TEST_DATABASE_URL",
+    setting.DATABASE_URL.rsplit("/", 1)[0] + "/test_series_test"
+)
+
+engine = create_async_engine(
+    TEST_DB_URL,
+    echo=False,
+    poolclass=NullPool,
 )
 
 TestingSessionLocal = async_sessionmaker(
@@ -30,7 +39,7 @@ TestingSessionLocal = async_sessionmaker(
 )
 
 # fixture to create and drop tables for every test
-# autouse=True means this runs automatically before every test , without calling for it
+# autouse=True means this runs automatically before every test , without calling for it ( we dont pass the fixture as argument in test function)
 
 
 # we are setting up db for test , engine/connections is used for all db ddl operations and sessions are used for db transaction operations
@@ -45,7 +54,7 @@ async def setup_db():
 
 
 # dependency of db sessions to our test
-@pytest.fixture()
+@pytest.fixture
 async def db_session():
     async with TestingSessionLocal() as session:
         yield session
@@ -54,20 +63,20 @@ async def db_session():
 #fixture for HTTP client that simulates api to our client
 @pytest.fixture
 async def async_client(db_session):
-    # we override the get_db dependency to test_get_db_dependency , because , when we call the api-endpoint for testing we do not pass any session obj in endpoint params , do by default it will call the our real-development /production session and so it will do perform operations on our development/production db , not the test db 
+    # we override the get_db dependency to test_get_db_dependency , because , when we call the api-endpoint for testing we do not pass any session obj in endpoint params , so by default it will call the our real-development /production session and so it will do perform operations on our development/production db , not the test db and we don't want that
 
-    def override_get_db():
+    async def override_get_db():
         yield db_session
 
-    app.dependency_overrides[get_db]=override_get_db
+    fastapi_app.dependency_overrides[get_db] = override_get_db 
 
-    transport=ASGITransport(app=app) # ASGITransport lets httpx communicate fastapi app directly without network
+    transport = ASGITransport(app=fastapi_app) # ASGITransport lets httpx communicate fastapi app directly without network
 
-    async with AsyncClient(transport=transport,base_url="http://test") as client:
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
         yield client # yields the client for for sending test requests
 
     # clears the overrides after the test is done
-    app.dependency_overrides.clear()
+    fastapi_app.dependency_overrides.clear()
 
 
 
